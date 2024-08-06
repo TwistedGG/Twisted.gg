@@ -7,16 +7,6 @@ GUI.ResetOnSpawn = false
 GUI.Name = tostring(math.random())
 GUI.IgnoreGuiInset = true
 
-local getRemote = function(remotename)
-	for i,v in pairs(game:GetDescendants()) do
-		if v:IsA("RemoteEvent") then
-			if v.Name == remotename then
-				return v
-			end
-		end
-	end
-end
-
 local lib = {
 	Count = 0,
 	ThemeColors = {
