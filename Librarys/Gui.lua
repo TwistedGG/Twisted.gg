@@ -13,7 +13,7 @@ local lib = {
 		clr1 = Color3.fromRGB(101, 181, 255),
 		clr2 = Color3.fromRGB(103, 103, 255),
 	},
-	GuiBind = Enum.KeyCode.Delete,
+	GuiBind = Enum.KeyCode.RightShift,
 	GuiInst = GUI,
 	ArrayListEnabled = false,
 	ArraylistTable = {
