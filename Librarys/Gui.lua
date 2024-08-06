@@ -2,10 +2,63 @@ repeat task.wait() until game:IsLoaded()
 
 local plr = game.Players.LocalPlayer
 
+local getgenv = getgenv or function() return {} end
+
+local writefile = getgenv().writefile or function(v) print("writefile not supported : " .. v) end
+local delfile = getgenv().delfile or function(v) print("writefile not supported : " .. v) end
+local makefolder = getgenv().makefolder or function(v) print("makefolder not supported : " .. v) end
+local readfile = getgenv().readfile or function(v) print("makefolder not supported : " .. v) end
+local isfile = getgenv().isfile or function(v) print("isfile not supported : " .. v) end
+
+local config = {
+	["Buttons"] = {},
+	["Toggles"] = {},
+	["Pickers"] = {},
+	["Textboxes"] = {},
+}
+
+local curPath = "Twisted.gg/Configs/"..game.PlaceId..".json"
+
+if not isfile("Twisted.gg") then
+	makefolder("Twisted.gg")
+	makefolder("Twisted.gg/Configs")
+	makefolder("Twisted.gg/CustomModules")
+end
+
+if identifyexecutor then
+	print("Loading twisted.gg on "..identifyexecutor().."...")
+end
+
+local saveConfig = function()
+	if isfile(curPath) then
+		delfile(curPath)
+	end
+	writefile(curPath,  game:GetService("HttpService"):JSONEncode(config))
+end
+
+local loadConfig = function()
+	if isfile(curPath) then
+		config = game:GetService("HttpService"):JSONDecode(readfile(curPath))
+	end
+end
+
+loadConfig()
+task.wait(0.5)
+
 local GUI = Instance.new("ScreenGui", plr.PlayerGui)
 GUI.ResetOnSpawn = false
 GUI.Name = tostring(math.random())
 GUI.IgnoreGuiInset = true
+
+local getRemote = function(remotename)
+	for i,v in pairs(game:GetDescendants()) do
+		if v:IsA("RemoteEvent") then
+			if v.Name == remotename then
+				return v
+			end
+		end
+	end
+end
 
 local lib = {
 	Count = 0,
@@ -158,6 +211,10 @@ function lib:CreateButton(tab)
 	local ntab = tab["Tab"]
 	local keyc = tab["KeyBind"]
 	local path = GUI[ntab].Modules
+	
+	local btnConfig = config["Buttons"][name] or {
+		Enabled = false
+	}
 
 	local button = Instance.new("TextButton", path)
 	button.Size = UDim2.fromScale(1, .12)
@@ -196,11 +253,25 @@ function lib:CreateButton(tab)
 		else
 			lib.ArraylistTable:RemoveFromArray(name)
 		end
+		
+		btnConfig.Enabled = enabled
+		config["Buttons"][name] = btnConfig
+		saveConfig()
 	end
+	
+	if btnConfig.Enabled then
+		buttonFunctions.Toggle()
+	end
+	
 	function buttonFunctions:newToggle(tab2)
 		local enabled2 = false
 		local name2 = tab2["Name"]
 		local func2 = tab2["Function"]
+
+
+		local tglConfig = config["Toggles"][name..name2] or {
+			Enabled = false
+		}
 
 		local lol = {Enabled = enabled2}
 
@@ -223,8 +294,15 @@ function lib:CreateButton(tab)
 				task.spawn(func2, enabled2)
 				lol.Enabled = enabled2
 				button2.BackgroundColor3 = (enabled2 and Color3.fromRGB(0,185,255) or Color3.fromRGB(40, 40, 40))
+				tglConfig.Enabled = enabled2
+				config["Toggles"][name..name2] = tglConfig
+				saveConfig()
 			end,
 		}
+		
+		if tglConfig.Enabled and not enabled2 then
+			buttonFunctions2.Toggle()
+		end
 
 		button2.MouseButton1Down:Connect(function()
 			buttonFunctions2.Toggle()
@@ -235,6 +313,10 @@ function lib:CreateButton(tab)
 		local name2 = tab2["Name"]
 		local func2 = tab2["Function"]
 		local Default = tab2["Default"]
+		
+		local txtConfig = config["Textboxes"][name..name2] or {
+			Value = Default
+		}
 
 		local returnval = {Value = Default and Default or 16}
 
@@ -249,8 +331,8 @@ function lib:CreateButton(tab)
 		textbox.Name = name2
 		textbox.TextSize = 18
 		textbox.Font = Enum.Font.SourceSans
-
-		textbox.FocusLost:Connect(function()
+		
+		local DoTextThing = function()
 			if textbox.Text ~= "" then
 				returnval.Value = textbox.Text
 				func2(textbox.Text)
@@ -258,7 +340,16 @@ function lib:CreateButton(tab)
 			else
 				textbox.Text = name2.. " : "..returnval.Value
 			end
-		end)
+			
+			txtConfig.Value = returnval.Value
+			config["Textboxes"][name..name2] = txtConfig
+			saveConfig()
+		end
+
+
+		textbox.Text = name2.." : "..tostring(txtConfig.Value)
+		returnval.Value = txtConfig.Value
+		textbox.FocusLost:Connect(DoTextThing)
 
 		return returnval
 	end
@@ -267,6 +358,10 @@ function lib:CreateButton(tab)
 		local name2 = tab2["Name"]
 		local Options = tab2["Options"]
 		local Default = tab2["Default"]
+		
+		local pckrConfig = config["Pickers"][name..name2] or {
+			Value = Default
+		}
 
 		local lol = {Option = (Default and Default or Options[1])}
 
@@ -292,8 +387,20 @@ function lib:CreateButton(tab)
 				end
 				button2.Text = name2.." : "..Options[Index]
 				lol.Option = Options[Index]
+				
+				pckrConfig.Value = Options[Index]
+				config["Pickers"][name..name2] = pckrConfig
+				saveConfig()
 			end,
 		}
+		
+		lol.Option = tostring(pckrConfig.Value)
+		button2.Text = name2 .. " : " .. tostring(lol.Option)
+		for i,v in pairs(Options) do
+			if v == lol.Option then
+				Index = i
+			end
+		end
 
 		button2.MouseButton1Down:Connect(function()
 			pickerFuncs.Switch()
@@ -327,4 +434,5 @@ function lib:CreateButton(tab)
 
 	return buttonFunctions
 end
+
 return lib
